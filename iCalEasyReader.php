@@ -58,9 +58,12 @@ class iCalEasyReader
 			$group = null;
 			$parentgroup = null;
 			$this->ical = [];
-			foreach ($lines as $line) {
-				if (substr($line, 0, 2) === 'X-' or trim($line) == '')
+			$lines = array_values($lines);
+			for ($ix = 0; $ix < count($lines); $ix++) {
+				$line = $lines[$ix];
+				if (substr($line, 0, 2) === 'X-' or trim($line) == '') {
 					continue;
+				}
 
 				$pattern = '^(BEGIN|END)\:(.+)$'; // (VALARM|VTODO|VJOURNAL|VEVENT|VFREEBUSY|VCALENDAR|DAYLIGHT|VTIMEZONE|STANDARD)
 				mb_ereg_search_init($line);
@@ -105,19 +108,20 @@ class iCalEasyReader
 				}
 
 				// There are cases like "ATTENDEE" that may take several lines.
-				if (!in_array($line[0], [" ", "\t"]) and strpos(':', $line) === false) {
-					$r = current($lines);
-					$concat = next($lines);
-					while ($concat and in_array($concat[0], [" ", "\t"])) {
+
+				if (!$this->isLineContinuation($line)) { // if (!in_array($line[0], [" ", "\t"]) and strpos(':', $line) === false) {
+					$r = $line;
+					$concat = $lines[++$ix] ?? false;
+					while ($this->isLineContinuation($concat)) {
 						$r .= substr($concat, 1);
-						$concat = next($lines);
+						$concat = $lines[++$ix] ?? false;
 					}
-					prev($lines);
+					$ix--;
 					if ($r !== $line)
 						$line = $r;
 				}
 
-				if (!in_array($line[0], [" ", "\t"]))
+				if (!$this->isLineContinuation($line))
 					$this->addItem($line, $group, $parentgroup);
 				else
 					$this->concatItem($line);
@@ -230,5 +234,10 @@ class iCalEasyReader
 			$string = mb_eregi_replace($pattern, $replacement, $string);
 
 		return $string;
+	}
+
+	public function isLineContinuation($line)
+	{
+		return $line !== false && in_array($line[0], [" ", "\t"]);
 	}
 }
