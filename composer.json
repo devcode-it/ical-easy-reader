@@ -1,19 +1,30 @@
 {
     "name": "aluguest/ical-easy-reader",
+    "version": "v1.5.1",
     "description": "An easy to understood class, loads a \"ics\" format string and returns an array with the traditional iCal fields.",
-    "keywords": ["ics", "ical", "calendar", "array"],
-	"require": {
-		"php": ">=5.4.0"
-	},
+    "keywords": [
+        "ics",
+        "ical",
+        "calendar",
+        "array"
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
     "license": "MIT",
     "minimum-stability": "stable",
     "authors": [
         {
             "name": "Matias Perrone",
             "role": "Developer"
-        }],
-	"autoload": {
-		"classmap": ["iCalEasyReader.php"]
-	},		
-	"non-feature-branches": ["latest-.*"]
+        }
+    ],
+    "autoload": {
+        "classmap": [
+            "iCalEasyReader.php"
+        ]
+    },
+    "non-feature-branches": [
+        "latest-.*"
+    ]
 }
