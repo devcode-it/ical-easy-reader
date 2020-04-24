@@ -16,6 +16,7 @@ class iCalEasyReader
 {
 	private $ical = null;
 	private $_lastitem = null;
+	private $_ignored = false;
 
 	public function &load($data)
 	{
@@ -61,55 +62,56 @@ class iCalEasyReader
 			$lines = array_values($lines);
 			for ($ix = 0; $ix < count($lines); $ix++) {
 				$line = $lines[$ix];
-				if (substr($line, 0, 2) === 'X-' or trim($line) == '') {
-					continue;
-				}
-
-				$pattern = '^(BEGIN|END)\:(.+)$'; // (VALARM|VTODO|VJOURNAL|VEVENT|VFREEBUSY|VCALENDAR|DAYLIGHT|VTIMEZONE|STANDARD)
-				mb_ereg_search_init($line);
-				$regs = mb_ereg_search_regs($pattern, $regex_opt);
-				if ($regs) {
-					// $regs
-					// 0 => BEGIN:VEVENT
-					// 1 => BEGIN
-					// 2 => VEVENT
-					switch ($regs[1]) {
-						case 'BEGIN':
-							if (!is_null($group))
-								$parentgroup = $group;
-
-							$group = trim($regs[2]);
-
-							// Adding new values to groups
-							if (is_null($parentgroup)) {
-								if (!array_key_exists($group, $this->ical))
-									$this->ical[$group] = [null];
-								else
-									$this->ical[$group][] = null;
-							} else {
-								if (!array_key_exists($parentgroup, $this->ical))
-									$this->ical[$parentgroup] = [$group => [null]];
-
-								if (!array_key_exists($group, $this->ical[$parentgroup]))
-									$this->ical[$parentgroup][$group] = [null];
-								else
-									$this->ical[$parentgroup][$group][] = null;
-							}
-
-							break;
-						case 'END':
-							if (is_null($group))
-								$parentgroup = null;
-
-							$group = null;
-							break;
-					}
-					continue;
-				}
 
 				// There are cases like "ATTENDEE" that may take several lines.
+				if (!$this->isLineContinuation($line)) {
+					if ($this->ignoreLine($line)) {
+						continue;
+					}
+					$this->_ignored = false;
 
-				if (!$this->isLineContinuation($line)) { // if (!in_array($line[0], [" ", "\t"]) and strpos(':', $line) === false) {
+					$pattern = '^(BEGIN|END)\:(.+)$'; // (VALARM|VTODO|VJOURNAL|VEVENT|VFREEBUSY|VCALENDAR|DAYLIGHT|VTIMEZONE|STANDARD)
+					mb_ereg_search_init($line);
+					$regs = mb_ereg_search_regs($pattern, $regex_opt);
+					if ($regs) {
+						// $regs
+						// 0 => BEGIN:VEVENT
+						// 1 => BEGIN
+						// 2 => VEVENT
+						switch ($regs[1]) {
+							case 'BEGIN':
+								if (!is_null($group))
+									$parentgroup = $group;
+
+								$group = trim($regs[2]);
+
+								// Adding new values to groups
+								if (is_null($parentgroup)) {
+									if (!array_key_exists($group, $this->ical))
+										$this->ical[$group] = [null];
+									else
+										$this->ical[$group][] = null;
+								} else {
+									if (!array_key_exists($parentgroup, $this->ical))
+										$this->ical[$parentgroup] = [$group => [null]];
+
+									if (!array_key_exists($group, $this->ical[$parentgroup]))
+										$this->ical[$parentgroup][$group] = [null];
+									else
+										$this->ical[$parentgroup][$group][] = null;
+								}
+
+								break;
+							case 'END':
+								if (is_null($group))
+									$parentgroup = null;
+
+								$group = null;
+								break;
+						}
+						continue;
+					}
+
 					$r = $line;
 					$concat = $lines[++$ix] ?? false;
 					while ($this->isLineContinuation($concat)) {
@@ -119,11 +121,9 @@ class iCalEasyReader
 					$ix--;
 					if ($r !== $line)
 						$line = $r;
-				}
 
-				if (!$this->isLineContinuation($line))
 					$this->addItem($line, $group, $parentgroup);
-				else
+				} else
 					$this->concatItem($line);
 			};
 		}
@@ -201,13 +201,15 @@ class iCalEasyReader
 
 	public function concatItem($line)
 	{
-		$line = mb_substr($line, 1);
-		if (is_array($this->_lastitem)) {
-			$line = $this->transformLine($this->_lastitem['value'] . $line);
-			$this->_lastitem['value'] = $line;
-		} else {
-			$line = $this->transformLine($this->_lastitem . $line);
-			$this->_lastitem = $line;
+		if (!$this->_ignored) {
+			$line = mb_substr($line, 1);
+			if (is_array($this->_lastitem)) {
+				$line = $this->transformLine($this->_lastitem['value'] . $line);
+				$this->_lastitem['value'] = $line;
+			} else {
+				$line = $this->transformLine($this->_lastitem . $line);
+				$this->_lastitem = $line;
+			}
 		}
 	}
 
@@ -234,6 +236,13 @@ class iCalEasyReader
 			$string = mb_eregi_replace($pattern, $replacement, $string);
 
 		return $string;
+	}
+
+	public function ignoreLine($line)
+	{
+		$ignore = substr($line, 0, 2) == 'X-' or trim($line) == '';
+		$this->_ignored = $this->isLineContinuation($line) ? $this->_ignored : $ignore;
+		return $ignore;
 	}
 
 	public function isLineContinuation($line)
