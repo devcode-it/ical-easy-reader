@@ -21,7 +21,7 @@ class iCalEasyReader
 	public function &load($data)
 	{
 		$this->ical = false;
-		$regex_opt = 'mib';
+		$regex_opt = 'mid';
 
 		// Lines in the string
 		$lines = mb_split('[\r\n]+', $data);
