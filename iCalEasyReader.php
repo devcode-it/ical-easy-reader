@@ -18,7 +18,7 @@ class iCalEasyReader
 	private $_lastitem = null;
 	private $_ignored = false;
 
-	public function &load($data)
+	public function &load($data, $ignoreNonStandardFields = true)
 	{
 		$this->ical = false;
 		$regex_opt = 'mid';
@@ -65,7 +65,7 @@ class iCalEasyReader
 
 				// There are cases like "ATTENDEE" that may take several lines.
 				if (!$this->isLineContinuation($line)) {
-					if ($this->ignoreLine($line)) {
+					if ($ignoreNonStandardFields And $this->ignoreLine($line)) {
 						continue;
 					}
 					$this->_ignored = false;
