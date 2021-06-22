@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		2.0.1
+ * @version		3.1.0
  * @param	string	$data	ics file string content
  * @param	array|false	$data $makeItEasy	the idea is to convert this "keys" into the "values", converting the DATE and DATE-TIME values to the respective DateTime type of PHP, also all the keys are lowercased
  * @return	array|false
@@ -23,8 +23,15 @@ class iCalEasyReader
 		$this->concatLineContinuations($data);
 		$lines = $this->splitLines($data);
 
+		if (count($lines) == 1) {
+			$this->concatLineContinuations($data, "\n");
+			$lines = $this->splitLines($data, true);
+		}
+
 		// Delete empty ones
 		$lines = array_values(array_filter($lines));
+		var_dump($lines);
+		die();
 		$last = count($lines);
 
 		// First and last items
@@ -59,9 +66,10 @@ class iCalEasyReader
 		return $this->ical;
 	}
 
-	protected function &concatLineContinuations(string &$data)
+	protected function &concatLineContinuations(string &$data, string $lineTermination = "\r\n")
 	{
-		$data = preg_replace("/\r\n( |\t)/m", '', $data);
+		$data = preg_replace("/{$lineTermination}( |\t)/m", '', $data);
+
 		return $data;
 	}
 
@@ -112,9 +120,21 @@ class iCalEasyReader
 		return $data;
 	}
 
-	protected function splitLines(string &$data)
+	protected function &splitLines(string &$data, bool $acceptInvalidLineTerminator = false)
 	{
-		return mb_split('\r\n', $data);
+		$lines = mb_split('\r\n', $data);
+
+		// Contemplate invalid endlines LF or CR instead of CRLF.
+		if ($acceptInvalidLineTerminator) {
+			if (count($lines) === 1) {
+				$lines = mb_split('\n', $data); // LF
+			}
+
+			if (count($lines) === 1) {
+				$lines = mb_split('\r', $data); // CR (last chance)
+			}
+		}
+		return $lines;
 	}
 
 	protected function addType(&$value, $item)
