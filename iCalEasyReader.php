@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.0
+ * @version		3.1.1
  * @param	string	$data	ics file string content
  * @param	array|false	$data $makeItEasy	the idea is to convert this "keys" into the "values", converting the DATE and DATE-TIME values to the respective DateTime type of PHP, also all the keys are lowercased
  * @return	array|false
@@ -30,8 +30,6 @@ class iCalEasyReader
 
 		// Delete empty ones
 		$lines = array_values(array_filter($lines));
-		var_dump($lines);
-		die();
 		$last = count($lines);
 
 		// First and last items
