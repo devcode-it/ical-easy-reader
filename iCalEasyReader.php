@@ -30,7 +30,7 @@ class iCalEasyReader
 
 		// Delete empty ones
 		$lines = array_values(array_filter($lines));
-		var_dump($lines);
+
 		die();
 		$last = count($lines);
 
