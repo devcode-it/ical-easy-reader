@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.1
+ * @version		3.1.2
  * @param	string	$data	ics file string content
  * @param	array|false	$data $makeItEasy	the idea is to convert this "keys" into the "values", converting the DATE and DATE-TIME values to the respective DateTime type of PHP, also all the keys are lowercased
  * @return	array|false
@@ -18,42 +18,11 @@ class iCalEasyReader
 	public function &load(string $data, bool $ignoreNonStandardFields = true)
 	{
 		$this->ical = false;
-		$regex_opt = 'mid';
 
-		$this->concatLineContinuations($data);
-		$lines = $this->splitLines($data);
-
-		if (count($lines) == 1) {
-			$this->concatLineContinuations($data, "\n");
-			$lines = $this->splitLines($data, true);
-		}
-
-		// Delete empty ones
-		$lines = array_values(array_filter($lines));
-		$last = count($lines);
+		$lines = $this->getLines($data);
 
 		// First and last items
-		$first = 0;
-		$last = count($lines) - 1;
-
-		$beginExists = mb_ereg_match('^BEGIN:VCALENDAR', $lines[$first] ?? '', $regex_opt);
-		$endExists = mb_ereg_match('^END:VCALENDAR', $lines[$last] ?? '', $regex_opt);
-
-		// If the first line is not the begin or the last is the end of calendar, look for the end and/or the beginning.
-		if (!$beginExists or !$endExists) {
-			$first = $beginExists ? $first : null;
-			$last = $endExists ? $last : null;
-			foreach ($lines as $i => &$line) {
-				if (is_null($first) and mb_ereg_match('^BEGIN:VCALENDAR', $line, $regex_opt)) {
-					$first = $i;
-				}
-
-				if (is_null($last) and mb_ereg_match('^END:VCALENDAR', $line, $regex_opt)) {
-					$last = $i;
-					break;
-				}
-			}
-		}
+		$this->getFirstAndLastLines($lines, $first, $last);
 
 		// If not malformed => process
 		if (!is_null($first) and !is_null($last)) {
@@ -73,7 +42,7 @@ class iCalEasyReader
 
 	protected function convertCaracters(string &$data)
 	{
-		$chars = mb_str_split($data);
+		$chars = $this->mb_str_split($data);
 		for ($ipos = 1; $ipos < count($chars); $ipos++) {
 			$clean = false;
 			switch ($chars[$ipos - 1]) {
@@ -118,8 +87,9 @@ class iCalEasyReader
 		return $data;
 	}
 
-	protected function &splitLines(string &$data, bool $acceptInvalidLineTerminator = false)
+	protected function &getLines(string &$data, bool $acceptInvalidLineTerminator = false)
 	{
+		$this->concatLineContinuations($data);
 		$lines = mb_split('\r\n', $data);
 
 		// Contemplate invalid endlines LF or CR instead of CRLF.
@@ -132,6 +102,15 @@ class iCalEasyReader
 				$lines = mb_split('\r', $data); // CR (last chance)
 			}
 		}
+
+		// Taking into consideration non standard endlines
+		if (count($lines) == 1) {
+			$this->concatLineContinuations($data, "\n");
+			$lines = $this->getLines($data, true);
+		}
+
+		// Delete empty ones
+		$lines = array_values(array_filter($lines));
 		return $lines;
 	}
 
@@ -160,8 +139,6 @@ class iCalEasyReader
 		$key = $item[0];
 		$value = $item[1] ?? null;
 
-		// return ['key' => $key, 'value' => $value];
-
 		$subitem = explode(';', $key, 2);
 		if (count($subitem) > 1) {
 			$key = $subitem[0];
@@ -177,7 +154,19 @@ class iCalEasyReader
 			$this->processMultivalue($value);
 		}
 
-		$current[$key] = $value;
+		if ($key == 'EXDATE') {
+			var_dump('antes', $current, $value);
+		}
+		if (!array_key_exists($key, $current)) {
+			$current[$key] = $value;
+		} elseif (!is_array($current[$key]) or !array_key_exists(0, $current[$key])) {
+			$current[$key] = [$current[$key], $value];
+		} else {
+			$current[$key][] = $value;
+		}
+		if ($key == 'EXDATE') {
+			var_dump('despues', $current);
+		}
 	}
 
 	protected function processMultivalue(&$value)
@@ -225,6 +214,10 @@ class iCalEasyReader
 			if (!$section) {
 				$this->addItem($current[$level], $line);
 			} else {
+				// END
+				if ($section[1] === 'END') {
+					$level--;
+				}
 				// BEGIN
 				if ($section[1] === 'BEGIN') {
 					$name = $section[2];
@@ -246,9 +239,88 @@ class iCalEasyReader
 					// Increase current level
 					$level++;
 				}
-				// END
-				else {
-					$level--;
+			}
+		}
+	}
+
+	/**
+	 * Since the PHP function of "mb_str_split" does not work on PHP versions prior to to PHP 7.4.0,
+	 * (see https://www.php.net/mb_str_split), I incorporated  info@ensostudio.ru's PolyFill function
+	 * and wrapped it inside an if(!function_exists) application. This resolved the "Call to undefined function"
+	 * error for PHP versions prior to PHP 7.4.0. -- Douglas "BearlyDoug" Hazard
+	 */
+	protected function mb_str_split($string, $split_length = 1, $encoding = null)
+	{
+		if (function_exists('mb_str_split')) {
+			return mb_str_split($string);
+		}
+		if (null !== $string && !\is_scalar($string) && !(\is_object($string) && \method_exists($string, '__toString'))) {
+			trigger_error('mb_str_split(): expects parameter 1 to be string, ' . \gettype($string) . ' given', E_USER_WARNING);
+			return null;
+		}
+		if (null !== $split_length && !\is_bool($split_length) && !\is_numeric($split_length)) {
+			trigger_error('mb_str_split(): expects parameter 2 to be int, ' . \gettype($split_length) . ' given', E_USER_WARNING);
+			return null;
+		}
+		$split_length = (int) $split_length;
+		if (1 > $split_length) {
+			trigger_error('mb_str_split(): The length of each segment must be greater than zero', E_USER_WARNING);
+			return false;
+		}
+		if (null === $encoding) {
+			$encoding = mb_internal_encoding();
+		} else {
+			$encoding = (string) $encoding;
+		}
+
+		if (!in_array($encoding, mb_list_encodings(), true)) {
+			static $aliases;
+			if ($aliases === null) {
+				$aliases = [];
+				foreach (mb_list_encodings() as $encoding) {
+					$encoding_aliases = mb_encoding_aliases($encoding);
+					if ($encoding_aliases) {
+						foreach ($encoding_aliases as $alias) {
+							$aliases[] = $alias;
+						}
+					}
+				}
+			}
+			if (!in_array($encoding, $aliases, true)) {
+				trigger_error('mb_str_split(): Unknown encoding "' . $encoding . '"', E_USER_WARNING);
+				return null;
+			}
+		}
+
+		$result = [];
+		$length = mb_strlen($string, $encoding);
+		for ($i = 0; $i < $length; $i += $split_length) {
+			$result[] = mb_substr($string, $i, $split_length, $encoding);
+		}
+		return $result;
+	}
+
+	protected function getFirstAndLastLines(array &$lines, int &$first = null, int &$last = null)
+	{
+		$regex_opt = 'mid';
+		$first = 0;
+		$last = count($lines) - 1;
+
+		$beginExists = mb_ereg_match('^BEGIN:VCALENDAR', $lines[$first] ?? '', $regex_opt);
+		$endExists = mb_ereg_match('^END:VCALENDAR', $lines[$last] ?? '', $regex_opt);
+
+		// If the first line is not the begin or the last is the end of calendar, look for the end and/or the beginning.
+		if (!$beginExists or !$endExists) {
+			$first = $beginExists ? $first : null;
+			$last = $endExists ? $last : null;
+			foreach ($lines as $i => &$line) {
+				if (is_null($first) and mb_ereg_match('^BEGIN:VCALENDAR', $line, $regex_opt)) {
+					$first = $i;
+				}
+
+				if (is_null($last) and mb_ereg_match('^END:VCALENDAR', $line, $regex_opt)) {
+					$last = $i;
+					break;
 				}
 			}
 		}
