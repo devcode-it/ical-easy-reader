@@ -154,18 +154,12 @@ class iCalEasyReader
 			$this->processMultivalue($value);
 		}
 
-		if ($key == 'EXDATE') {
-			var_dump('antes', $current, $value);
-		}
 		if (!array_key_exists($key, $current)) {
 			$current[$key] = $value;
 		} elseif (!is_array($current[$key]) or !array_key_exists(0, $current[$key])) {
 			$current[$key] = [$current[$key], $value];
 		} else {
 			$current[$key][] = $value;
-		}
-		if ($key == 'EXDATE') {
-			var_dump('despues', $current);
 		}
 	}
 
