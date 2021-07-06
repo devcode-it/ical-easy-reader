@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.3
+ * @version		3.1.4
  * @return	array|false
  */
 class iCalEasyReader
