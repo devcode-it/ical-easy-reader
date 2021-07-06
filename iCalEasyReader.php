@@ -6,15 +6,20 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.2
- * @param	string	$data	ics file string content
- * @param	array|false	$data $makeItEasy	the idea is to convert this "keys" into the "values", converting the DATE and DATE-TIME values to the respective DateTime type of PHP, also all the keys are lowercased
+ * @version		3.1.3
  * @return	array|false
  */
 class iCalEasyReader
 {
 	protected $ical = null;
 
+	/**
+	 * Loads the calendar, and returns an array with the fields.
+	 *
+	 * @param string $data the ical in the string format
+	 * @param boolean $ignoreNonStandardFields default true. Set to true to ignore "X-" fields.
+	 * @return array|false Returns an array or false if an error occurs
+	 */
 	public function &load(string $data, bool $ignoreNonStandardFields = true)
 	{
 		$this->ical = false;
@@ -87,26 +92,18 @@ class iCalEasyReader
 		return $data;
 	}
 
-	protected function &getLines(string &$data, bool $acceptInvalidLineTerminator = false)
+	protected function &getLines(string &$data, int $lineTerminatorSelected = 0)
 	{
-		$this->concatLineContinuations($data);
-		$lines = mb_split('\r\n', $data);
-
-		// Contemplate invalid endlines LF or CR instead of CRLF.
-		if ($acceptInvalidLineTerminator) {
-			if (count($lines) === 1) {
-				$lines = mb_split('\n', $data); // LF
-			}
-
-			if (count($lines) === 1) {
-				$lines = mb_split('\r', $data); // CR (last chance)
-			}
-		}
+		$possibleLineTerminators = ["\r\n", "\n", "\r"];
+		$lineTerminator = $possibleLineTerminators[$lineTerminatorSelected];
+		$this->concatLineContinuations($data, $lineTerminator);
+		$lines = mb_split($lineTerminator, $data);
 
 		// Taking into consideration non standard endlines
-		if (count($lines) == 1) {
-			$this->concatLineContinuations($data, "\n");
-			$lines = $this->getLines($data, true);
+		if (count($lines) === 1 and $lineTerminatorSelected < count($possibleLineTerminators)) {
+			$lineTerminatorSelected++;
+			unset($lines);
+			$lines = $this->getLines($data, $lineTerminatorSelected);
 		}
 
 		// Delete empty ones
