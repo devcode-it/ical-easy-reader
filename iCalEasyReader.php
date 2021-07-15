@@ -100,7 +100,7 @@ class iCalEasyReader
 		$lines = mb_split($lineTerminator, $data);
 
 		// Taking into consideration non standard endlines
-		if (count($lines) === 1 and $lineTerminatorSelected < count($possibleLineTerminators)) {
+		if (count($lines) === 1 and $lineTerminatorSelected < (count($possibleLineTerminators) - 1)) {
 			$lineTerminatorSelected++;
 			unset($lines);
 			$lines = $this->getLines($data, $lineTerminatorSelected);
