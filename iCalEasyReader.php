@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.4
+ * @version		3.1.6
  * @return	array|false
  */
 class iCalEasyReader
@@ -94,7 +94,8 @@ class iCalEasyReader
 
 	protected function &getLines(string &$data, int $lineTerminatorSelected = 0)
 	{
-		$possibleLineTerminators = ["\r\n", "\n", "\r"];
+		$data = str_replace("\r\n", "\n", $data);
+		$possibleLineTerminators = ["\n", "\r"];
 		$lineTerminator = $possibleLineTerminators[$lineTerminatorSelected];
 		$this->concatLineContinuations($data, $lineTerminator);
 		$lines = mb_split($lineTerminator, $data);
