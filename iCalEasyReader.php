@@ -6,7 +6,7 @@
  * @category	Parser
  * @author		Matias Perrone <matias.perrone at gmail dot com>
  * @license		http://www.opensource.org/licenses/mit-license.php MIT License
- * @version		3.1.6
+ * @version		3.1.7
  * @return	array|false
  */
 class iCalEasyReader
@@ -115,20 +115,18 @@ class iCalEasyReader
 	protected function addType(&$value, $item)
 	{
 		$type = explode('=', $item);
-
 		if (count($type) > 1 and $type[0] == 'VALUE')
 			$value['TYPE'] = $type[1];
 		else
 			$value[$type[0]] = $type[1];
 
+		array_walk($value, [$this, 'convertCaracters']);
 		return $value;
 	}
 
 	protected function addItem(array &$current, string &$line)
 	{
-		$item = explode(':', $line, 2);
-		array_walk($item, [$this, 'convertCaracters']);
-
+		$item = $this->split(':', $line, 2);
 		if (!array_key_exists(1, $item)) {
 			trigger_error("Unexpected Line error. Possible Corruption. Line " . strlen($line) . ":" . PHP_EOL . $line . PHP_EOL, E_USER_NOTICE);
 			return;
@@ -137,11 +135,11 @@ class iCalEasyReader
 		$key = $item[0];
 		$value = $item[1] ?? null;
 
-		$subitem = explode(';', $key, 2);
+		$subitem = $this->split(';', $key, 2);
 		if (count($subitem) > 1) {
 			$key = $subitem[0];
 			$value = ['VALUE' => $value];
-			if (strpos($subitem[1], ";") !== false)
+			if (count($this->split(';', $subitem[1])) > 1)
 				$value += $this->processMultivalue($subitem[1]);
 			else
 				$this->addType($value, $subitem[1]);
@@ -150,6 +148,12 @@ class iCalEasyReader
 		// Multi value
 		if (is_string($value)) {
 			$this->processMultivalue($value);
+
+			if (is_array($value)) {
+				array_walk($value, [$this, 'convertCaracters']);
+			} else {
+				$this->convertCaracters($value);
+			}
 		}
 
 		if (!array_key_exists($key, $current)) {
@@ -163,11 +167,11 @@ class iCalEasyReader
 
 	protected function processMultivalue(&$value)
 	{
-		$z = explode(';', $value);
+		$z = $this->split(';', $value);
 		if (count($z) > 1) {
 			$value = [];
 			foreach ($z as &$v) {
-				$t = explode('=', $v);
+				$t = $this->split('=', $v);
 				$value[$t[0]] = $t[count($t) - 1];
 			}
 		}
@@ -316,5 +320,10 @@ class iCalEasyReader
 				}
 			}
 		}
+	}
+
+	protected function split(string $separator, string $value, int $limit = -1): array
+	{
+		return mb_split("(?<!\\\\){$separator}", $value, $limit);
 	}
 }

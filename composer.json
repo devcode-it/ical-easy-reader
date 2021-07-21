@@ -1,6 +1,6 @@
 {
     "name": "aluguest/ical-easy-reader",
-    "version": "v3.1.6",
+    "version": "v3.1.7",
     "description": "An easy to understood class, loads a \"ics\" format string and returns an array with the traditional iCal fields.",
     "keywords": [
         "ics",
