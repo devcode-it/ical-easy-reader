@@ -4,7 +4,7 @@ $eventTitle = "";
 
 include('iCalEasyReader.php');
 $ical = new iCalEasyReader();
-$lines = $ical->load(file_get_contents('calendar.ics'));
+$lines = $ical->load(file_get_contents('https://events.gcm.cz/calendar.ics?location=Rumburk&radius=100'));
 //$lines = $ical->load(file_get_contents('google.ics'));
 //$lines = $ical->load(file_get_contents('dougtest.ics'));
 
