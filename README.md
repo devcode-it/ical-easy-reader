@@ -1,6 +1,6 @@
 ## iCalEasyReader ##
 
-This is a fork of the original project https://github.com/Sinevia/ical-easy-reader, forked in [https://github.com/Sinevia/ical-easy-reader](https://github.com/n3oklan/ical-easy-reader) and then in devcode-it to mantain it and make it available on packagist:
+This is a fork of the original project https://github.com/Sinevia/ical-easy-reader, forked in https://github.com/n3oklan/ical-easy-reader and then in devcode-it to mantain it and make it available on packagist:
 
 https://packagist.org/packages/devcode-it/ical-easy-reader
 
