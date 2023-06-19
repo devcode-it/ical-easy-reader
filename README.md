@@ -1,10 +1,19 @@
 ## iCalEasyReader ##
 
-This is a fork of the original project https://github.com/Sinevia/ical-easy-reader, forked in [https://github.com/Sinevia/ical-easy-reader](https://github.com/n3oklan/ical-easy-reader) and then in devcode-it to mantain it and make it available on packagist.
+This is a fork of the original project https://github.com/Sinevia/ical-easy-reader, forked in [https://github.com/Sinevia/ical-easy-reader](https://github.com/n3oklan/ical-easy-reader) and then in devcode-it to mantain it and make it available on packagist:
+
+https://packagist.org/packages/devcode-it/ical-easy-reader
+
+
+Installation:
+----------
+```bash
+composer require devcode-it/ical-easy-reader
+```
 
 Usage:
 ----------
-
+```php
     <?php
     header( 'Content-Type: text/plain; charset=UTF-8' );
     include ( 'iCalEasyReader.php' );
@@ -12,10 +21,10 @@ Usage:
     $lines = $ical->load( file_get_contents( 'example2.ics' ) );
     var_dump( $lines );
     ?>
-
+```
 Output:
 ----------
-
+```php
     array(4) {
       ["PRODID"]=>
       string(48) "-//Mozilla.org/NONSGML Mozilla Calendar V1.1//EN"
@@ -109,4 +118,4 @@ Output:
           string(1) "4"
           ["DESCRIPTION"]=>
           &string(2298) "Here is a new Class:
-    
+```
